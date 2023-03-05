@@ -1,0 +1,25 @@
+{
+  "name": "yedin",
+  "version": "1.0.0",
+  "description": "Alternative to npm cli with superpowers",
+  "main": "index.js",
+  "scripts": {
+    "build": "cargo build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vclemenzi/yedin.git"
+  },
+  "keywords": [
+    "npm",
+    "cli",
+    "package",
+    "rust"
+  ],
+  "author": "Valerio Clemenzi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vclemenzi/yedin/issues"
+  },
+  "homepage": "https://github.com/vclemenzi/yedin#readme"
+}
