@@ -21,7 +21,7 @@ pub fn dmap(name: &str, version: &str, deps: Arc<Mutex<HashSet<String>>>) -> Res
             let dist = response["dist"].as_object().unwrap();
             let tarball = dist["tarball"].as_str().unwrap();
 
-            let dependency = format!("{}@{}:{}", name, clean_version(name, version), tarball).to_string();
+            let dependency = format!("{}@{}@{}", name, clean_version(name, version), tarball).to_string();
             if deps.lock().unwrap().contains(&dependency) {
                 return;
             }
@@ -33,6 +33,7 @@ pub fn dmap(name: &str, version: &str, deps: Arc<Mutex<HashSet<String>>>) -> Res
 
     Ok(())
 }
+
 
 
 
@@ -52,6 +53,6 @@ pub fn get_all_deps(name: &str, version: &str) -> Result<HashSet<String>, reqwes
     let dist = response["dist"].as_object().unwrap();
     let tarball = dist["tarball"].as_str().unwrap();
 
-    cloned_deps.insert(format!("{}@{}:{}", name, response["version"], tarball).to_string().to_string());
+    cloned_deps.insert(format!("{}@{}@{}", name, response["version"].to_string().replace("\"", ""), tarball).to_string().to_string());
     Ok(cloned_deps)
 }
