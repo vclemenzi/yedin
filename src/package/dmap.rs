@@ -52,7 +52,7 @@ pub fn get_all_deps(name: &str, version: &str) -> Result<HashSet<String>, reqwes
     let response = reqwest::blocking::get(&url)?.json::<serde_json::Value>()?;
     let dist = response["dist"].as_object().unwrap();
     let tarball = dist["tarball"].as_str().unwrap();
-
+    
     cloned_deps.insert(format!("{}@{}@{}", name, response["version"].to_string().replace("\"", ""), tarball).to_string().to_string());
     Ok(cloned_deps)
 }

@@ -1,21 +1,20 @@
 use std::{fs::File, sync::{Arc, Mutex}};
 
 use super::{dmap, download};
+use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
-use spinners::{Spinner, Spinners};
 
 pub fn install(name: &str, version: &str) {
-    let mut sp = Spinner::new(
-        Spinners::Point,
-        format!("Mapping dependencies for {}@{}", name, version).into(),
-    );
+    println!("Installing {}@{}...", name, version);
     let deps = dmap::get_all_deps(&name, &version).unwrap();
-    sp.stop_with_message(format!("Mapped dependencies for {}@{}", name, version).to_string());
 
     // Download all deps
-    let mut spd = Spinner::new(
-        Spinners::Point,
-        format!("Downloading dependencies for {}@{}", name, version).into(),
+
+    let pb = ProgressBar::new(deps.len() as u64);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
+            .unwrap().progress_chars("##-"),
     );
 
     deps.par_iter().for_each(|dep| {
@@ -51,18 +50,12 @@ pub fn install(name: &str, version: &str) {
         // Delete tarball
         std::fs::remove_file(format!("./node_modules/.temp/{}.tar.gz", name)).unwrap();
         std::fs::remove_dir_all(format!("./node_modules/.temp/{}", name)).unwrap();
+
+        pb.set_position(pb.position() + 1);
     });
 
-    spd.stop_with_message(format!("Downloaded dependencies for {}@{}", name, version).to_string());
-
     // Clean up
-
-    let mut spc = Spinner::new(
-        Spinners::Point,
-        format!("Cleaning up for {}@{}", name, version).into(),
-    );
-
     std::fs::remove_dir_all("./node_modules/.temp").unwrap();
 
-    spc.stop_with_message(format!("Cleaned up for {}@{}", name, version).to_string());
+    pb.finish_with_message("Done");
 }
