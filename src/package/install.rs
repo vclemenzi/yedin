@@ -71,7 +71,7 @@ pub fn install(name: &str, version: &str) {
 
         // Update yedin.lock
         let mut content = std::fs::read_to_string("./yedin.lock").unwrap();
-        content.push_str(&format!("{}@{} = {}\n", name, version, tarball));
+        content.push_str(&format!("{}@{}@{}\n", name, version, tarball));
         std::fs::write("./yedin.lock", content).unwrap();
 
         // Update progress bar
