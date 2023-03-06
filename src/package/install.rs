@@ -1,20 +1,25 @@
-use std::{fs::File, sync::{Arc, Mutex}};
-
 use super::{dmap, download};
+use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
+use spinners::{Spinner, Spinners};
+use std::fs::File;
 
 pub fn install(name: &str, version: &str) {
-    println!("Installing {}@{}...", name, version);
+    let mut spinner = Spinner::new(Spinners::Line, "Mapping all dependencies...".to_string());
     let deps = dmap::get_all_deps(&name, &version).unwrap();
+    spinner.stop_with_message(format!(
+        "Mapped {} dependencies, downloading...",
+        style(deps.len()).cyan().bold()
+    ));
 
     // Download all deps
-
     let pb = ProgressBar::new(deps.len() as u64);
     pb.set_style(
         ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})")
-            .unwrap().progress_chars("##-"),
+            .template("[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len}")
+            .unwrap()
+            .progress_chars("##-"),
     );
 
     deps.par_iter().for_each(|dep| {
@@ -38,24 +43,45 @@ pub fn install(name: &str, version: &str) {
         let mut archive = tar::Archive::new(flate2::read::GzDecoder::new(
             File::open(format!("./node_modules/.temp/{}.tar.gz", name)).unwrap(),
         ));
-        archive
-            .unpack(format!("./node_modules/.temp/{}", name))
-            .unwrap();
-        std::fs::rename(
+
+        // TODO: Remove this control and move it to the dmap function
+        match archive.unpack(format!("./node_modules/.temp/{}", name)) {
+            Ok(_) => (),
+            Err(_) => (),
+        }
+
+        match std::fs::rename(
             format!("./node_modules/.temp/{}/package", name),
             format!("./node_modules/{}", name),
-        )
-        .unwrap();
+        ) {
+            Ok(_) => (),
+            Err(_) => (),
+        }
 
         // Delete tarball
-        std::fs::remove_file(format!("./node_modules/.temp/{}.tar.gz", name)).unwrap();
-        std::fs::remove_dir_all(format!("./node_modules/.temp/{}", name)).unwrap();
+        match std::fs::remove_file(format!("./node_modules/.temp/{}.tar.gz", name)) {
+            Ok(_) => (),
+            Err(_) => (),
+        }
+        match std::fs::remove_dir(format!("./node_modules/.temp/{}", name)) {
+            Ok(_) => (),
+            Err(_) => (),
+        }
 
         pb.set_position(pb.position() + 1);
     });
 
     // Clean up
     std::fs::remove_dir_all("./node_modules/.temp").unwrap();
+    pb.finish_and_clear();
 
-    pb.finish_with_message("Done");
+    println!(
+        "Installed {} dependencies successfully!",
+        style(deps.len()).cyan().bold()
+    );
+    println!(
+        "Installed {}@{} successfully!",
+        style(name).green().bold(),
+        style(version).cyan().bold()
+    );
 }
