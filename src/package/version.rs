@@ -2,7 +2,7 @@ pub fn clean_version(name: &str, version: &str) -> String {
     let mut chars = version.chars();
     let mut result = String::new();
 
-    if version == "*" {
+    if version == "*" || version == "latest" {
         let url = format!("https://registry.npmjs.org/{}/latest", name);
         let response = reqwest::blocking::get(&url).unwrap().json::<serde_json::Value>().unwrap();
         return response["version"].as_str().unwrap().to_string();

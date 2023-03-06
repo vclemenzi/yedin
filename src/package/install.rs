@@ -1,4 +1,5 @@
 use super::{dmap, download};
+use crate::package::version::clean_version;
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
@@ -27,13 +28,13 @@ pub fn install(name: &str, version: &str) {
         // name@version@tarball
         let dep_split: Vec<&str> = dep.split('@').collect();
         let mut name = dep_split[0];
-        let mut _version = dep_split[1];
+        let mut version = dep_split[1];
         let mut tarball = dep_split[2];
 
         // Is a @org package
         if dep.starts_with("@") {
             name = dep_split[1];
-            _version = dep_split[2];
+            version = dep_split[2];
             tarball = dep_split[3];
         }
 
@@ -68,8 +69,34 @@ pub fn install(name: &str, version: &str) {
             Err(_) => (),
         }
 
+        // Update yedin.lock
+        let mut content = std::fs::read_to_string("./yedin.lock").unwrap();
+        content.push_str(&format!("{}@{} = {}\n", name, version, tarball));
+        std::fs::write("./yedin.lock", content).unwrap();
+
+        // Update progress bar
         pb.set_position(pb.position() + 1);
     });
+
+    // Add the dep to the package.json
+    let package_json = std::fs::read_to_string("./package.json").unwrap();
+    let mut package_json: serde_json::Value = serde_json::from_str(&package_json).unwrap();
+
+    if package_json["dependencies"].is_null() {
+        package_json["dependencies"] = serde_json::Value::Object(serde_json::Map::new());
+    }
+
+    let deps_json = package_json["dependencies"].as_object_mut().unwrap();
+
+    deps_json.insert(
+        name.to_string(),
+        serde_json::Value::String(clean_version(name, version)),
+    );
+
+    std::fs::write(
+        "./package.json",
+        serde_json::to_string_pretty(&package_json).unwrap(),
+    ).unwrap();
 
     // Clean up
     std::fs::remove_dir_all("./node_modules/.temp").unwrap();
